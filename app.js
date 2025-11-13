@@ -439,7 +439,7 @@ window.showOrderDetails = (idx) => {
         <div style="font-size:0.98em;">
           <div style="margin-bottom:.6em;"><b>Servicio:</b> ${pedido.service || ''}</div>
           <div style="margin-bottom:.6em;"><b>Correo:</b> ${pedido.correo || ''}</div>
-          <div style="margin-bottom:.6em;"><b>Perfil / User:</b> ${pedido.perfil || ''}</div>
+          <div style="margin-bottom:.6em;"><b>Contraseña / Perfil:</b> ${pedido.perfil || ''}</div>
           <div style="margin-bottom:.6em;"><b>PIN:</b> ${pedido.pin || ''}</div>
           <div style="margin-bottom:.6em;"><b>Inicio:</b> ${formateaFecha(pedido.start)}</div>
           <div style="margin-bottom:.6em;"><b>Fin:</b> ${formateaFecha(pedido.end)}</div>
@@ -891,3 +891,4 @@ function renderCentralAlerts() {
 }
 
 // Puedes llamar los render desde la navegación
+
