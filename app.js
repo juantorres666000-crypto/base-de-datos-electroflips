@@ -94,11 +94,12 @@ function renderAlertsPanel() {
     // Recopila todos los pedidos de todos los clientes
     let porVencer = [];
     let vencidos = [];
-    // use calcularDiasRestantes to avoid timezone issues
+    const hoy = new Date();
     clients.forEach(cli => {
         if (!cli.orders) return;
         cli.orders.forEach(ped => {
-            const dias = calcularDiasRestantes(ped.end);
+            const fin = new Date(ped.end + "T23:59:59");
+            const dias = Math.round((fin - hoy)/(1000*60*60*24));
             let info = {
                 cliente: cli.name,
                 clienteId: cli.id,
@@ -462,57 +463,38 @@ orderViewCloseBtn.onclick = closeOrderViewModal;
 modalOrderViewBg.onclick = function(e) { if (e.target === modalOrderViewBg) closeOrderViewModal(); }
 
 // --------- FECHAS ---------
-// Helper: parsear una "fecha" variada a Date local (acepta:
-// - "YYYY-MM-DD" (string)
-// - Firestore Timestamp (obj con toDate())
-// - Date ya creado
-// - otros strings ISOFallback)
-function parseDateLocal(fecha) {
-  if (fecha === null || fecha === undefined || fecha === '') return null;
-  // Firestore Timestamp?
-  if (fecha && typeof fecha.toDate === 'function') {
-    return fecha.toDate();
-  }
-  // Si ya es Date
-  if (fecha instanceof Date) return fecha;
-  // Si es string tipo "YYYY-MM-DD"
-  if (typeof fecha === 'string') {
-    const m = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (m) {
-      const y = parseInt(m[1], 10);
-      const mo = parseInt(m[2], 10) - 1;
-      const d = parseInt(m[3], 10);
-      return new Date(y, mo, d); // hora local, evita shift de zona
-    }
-    // Fallback: intentar construir Date con el string (si viene con hora o distinto)
-    const fallback = new Date(fecha);
-    if (!isNaN(fallback)) return fallback;
-    return null;
-  }
-  return null;
+function calcularEstadoPedido(order) {
+    const dias = calcularDiasRestantes(order.end);
+    if (dias < 0) return {texto: 'Vencido', class: 'vencido'};
+    if (dias <= 3) return {texto: 'Por vencer', class: 'por-vencer'};
+    return {texto: 'Activo', class: 'activo'};
 }
-
-// Calcula días restantes respecto a hoy usando la fecha final en hora local (considera final del día)
 function calcularDiasRestantes(fechaFin) {
     const hoy = new Date();
-    const finDate = parseDateLocal(fechaFin);
-    if (!finDate) return 0;
-    // Ponemos fin del día para que "vence el mismo día" cuente como 0 días restantes
-    finDate.setHours(23, 59, 59, 999);
-    const msPorDia = 1000 * 60 * 60 * 24;
-    const diffMs = finDate.getTime() - hoy.getTime();
-    // Usamos Math.ceil para que fracciones de día cuenten como día completo restante
-    return Math.ceil(diffMs / msPorDia);
+    const fin = new Date(fechaFin + 'T23:59:59');
+    const diff = Math.round((fin - hoy) / (1000*60*60*24));
+    return diff;
 }
-
-// Formatea "YYYY-MM-DD" (u otros tipos manejados) a "DD/MM/YYYY" sin shift de zona
+// Reemplaza la función formateaFecha existente por esta versión
 function formateaFecha(fechaStr) {
-    const d = parseDateLocal(fechaStr);
-    if (!d) return '';
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    if (!fechaStr) return '';
+    // Si ya es un objeto Date, formateamos directamente
+    if (fechaStr instanceof Date && !isNaN(fechaStr)) {
+        const f = fechaStr;
+        return `${f.getDate().toString().padStart(2,'0')}/${(f.getMonth()+1).toString().padStart(2,'0')}/${f.getFullYear()}`;
+    }
+    // Intentamos parsear cadenas YYYY-MM-DD de forma segura (creando Date en zona local)
+    const m = String(fechaStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    let f;
+    if (m) {
+        const year = Number(m[1]), month = Number(m[2]) - 1, day = Number(m[3]);
+        f = new Date(year, month, day); // crea fecha en zona local — evita desplazamiento UTC
+    } else {
+        // fallback: si no coincide con YYYY-MM-DD, intentamos new Date() (para compatibilidad con otros formatos)
+        f = new Date(fechaStr);
+    }
+    if (isNaN(f)) return ''; // fecha inválida
+    return `${f.getDate().toString().padStart(2,'0')}/${(f.getMonth()+1).toString().padStart(2,'0')}/${f.getFullYear()}`;
 }
 
 // ====== TARJETA DE FIDELIDAD ======
@@ -667,6 +649,7 @@ sendCardWA.onclick=()=>{
 
 // --- Arranque ---
 listenClientsRealtime();
+
 
 
 // Al final del archivo, tras tu código principal o en la sección de navegación
@@ -893,6 +876,7 @@ function renderFidelityRanking() {
 function renderCentralAlerts() {
     const area = document.getElementById('centralAlertsArea');
     let allVencidos = [], allPorVencer = [];
+    const hoy = new Date();
     clients.forEach(cli=>{
         (cli.orders||[]).forEach(ped=>{
             let dias = calcularDiasRestantes(ped.end);
