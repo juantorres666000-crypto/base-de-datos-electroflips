@@ -35,7 +35,13 @@
   <div class="alerts-panel" id="alertsPanel"></div>
   <header class="main-header">
       <h2>Clientes</h2>
+
+      <div style="display:flex; gap:.8em; align-items:center;">
       <button class="neon-btn" id="addClientBtn">+ Agregar Cliente</button>
+        <!-- Nuevo botón para ocultar clientes sin pedidos -->
+        <button class="neon-btn-sm outline" id="toggleHideNoOrders">Ocultar sin pedidos</button>
+      </div>
+
   </header>
   <section class="dashboard-section" id="clientsList">
       <!-- Tarjetas de clientes generadas por JS -->
@@ -274,5 +280,3 @@ const firebaseConfig = {
     <script src="app.js"></script>
 </body>
 </html>
-
-
