@@ -4,6 +4,7 @@
 // --- Estado global ----
 let clients = []; // Cada item será: {id, name, phone, email, orders:[], stamps:[], ...}
 let editIndex = null;
+let editClientId = null; // <-- declarado para evitar ReferenceError cuando se asigna en el modal
 let deleteIndex = null;
 
 let orderMode = 'add';
@@ -11,21 +12,39 @@ let currentClientIdx = null, currentClientId = null;
 let editOrderIdx = null, editOrderId = null;
 let deleteOrderIdx = null, deleteOrderId = null;
 
+// Nuevo: toggle para ocultar clientes sin pedidos e estado de expansión inline
+let hideWithoutOrders = false;
+const inlineOpenClients = new Set();
+
+
 // ---- === CLIENTES === ---- //
 function listenClientsRealtime() {
     db.collection('clientes').onSnapshot(snapshot => {
-        clients = [];
-        snapshot.forEach(doc => {
-            let data = doc.data();
-            data.id = doc.id;
-            if (!data.orders) data.orders = [];
-            clients.push(data);
+        // usamos una IIFE async para poder await dentro del callback
+        (async () => {
+            const promises = snapshot.docs.map(async doc => {
+                let data = doc.data();
+                data.id = doc.id;
+                // obtenemos los pedidos del subcollection para poder mostrarlos en la lista principal
+                try {
+                    const ordersSnap = await db.collection('clientes').doc(doc.id).collection('orders').orderBy('numero').get();
+                    data.orders = ordersSnap.docs.map(d => ({ ...d.data(), id: d.id }));
+                } catch (err) {
+                    // si falla por permisos o similar, dejamos orders como arreglo vacío
+                    data.orders = data.orders || [];
+                }
+                if (!data.orders) data.orders = [];
+                return data;
+            });
+            clients = await Promise.all(promises);
+            renderClients();
+            renderFidelityRanking();
+            renderCentralAlerts();
+            renderOrdersSection();
+            renderAlertsPanel();
+        })().catch(err => {
+            console.error("Error leyendo clientes u órdenes:", err);
         });
-        renderClients();
-        renderFidelityRanking();
-        renderCentralAlerts();
-        renderOrdersSection();
-        renderAlertsPanel();
     });
 }
 // add/update/delete: usan la colección 'clientes' y sus docs
@@ -69,27 +88,80 @@ async function deleteOrderFromFirebase(clienteId, orderId) {
 function renderClients() {
     const clientsList = document.getElementById('clientsList');
     clientsList.innerHTML = '';
+
     if (clients.length === 0) {
         clientsList.innerHTML = '<p style="opacity:.6; margin-top:2em">No hay clientes registrados aún.</p>';
         return;
     }
+
+    // Contador visible para indicar cuántos mostramos (útil cuando ocultamos sin pedidos)
+    let shownCount = 0;
     clients.forEach((client, idx) => {
+        // Si está activo el filtro: ocultar clientes sin pedidos
+        if (hideWithoutOrders && (!client.orders || client.orders.length === 0)) {
+            return;
+        }
+        shownCount++;
+
         const div = document.createElement('div');
         div.className = 'client-card neon-glow';
+
+        // resumen de pedidos
+        const ordersCount = (client.orders && client.orders.length) ? client.orders.length : 0;
+        // si el usuario expandió inline este cliente, mostraremos la lista dentro de la tarjeta
+        const isInlineOpen = inlineOpenClients.has(idx);
+
+        let ordersInlineHtml = '';
+        if (isInlineOpen && ordersCount > 0) {
+            // enumeramos hasta 6 pedidos para no sobrecargar la tarjeta
+            const maxShow = 6;
+            let listHtml = '<div style="margin-top:.8em;">';
+            client.orders.slice(0, maxShow).forEach((o, oi) => {
+                listHtml += `<div style="font-size:.92em; margin-bottom:.36em; color:#ddd;">
+                    <b>${o.service || ('#' + (o.numero || (oi+1)))}</b>
+                    <div style="opacity:.75; font-size:.88em;">Fin: ${formateaFecha(o.end)} — ${o.correo || ''}</div>
+                </div>`;
+            });
+            if (ordersCount > maxShow) listHtml += `<div style="opacity:.7;font-size:.88em;">... y ${ordersCount - maxShow} más</div>`;
+            listHtml += '</div>';
+            ordersInlineHtml = listHtml;
+        } else if (isInlineOpen && ordersCount === 0) {
+            ordersInlineHtml = `<div style="margin-top:.8em; opacity:.8;">Este cliente no tiene pedidos registrados.</div>`;
+        }
+
         div.innerHTML = `
             <h3>${client.name}</h3>
             <p><span>📞</span> ${client.phone}</p>
             <p><span>✉️</span> ${client.email}</p>
+            <div style="margin-top:.65em; display:flex; gap:.6em; align-items:center; flex-wrap:wrap;">
+                <div style="font-size:.95em; color:var(--neon-blue); font-weight:700;">Pedidos: ${ordersCount}</div>
+                <button class="neon-btn-sm outline" onclick="toggleInlineOrders(${idx})">${isInlineOpen ? 'Ocultar pedidos' : 'Mostrar pedidos'}</button>
+            </div>
+            <div style="margin-top:.6em" id="client-inline-${idx}">
+                ${ordersInlineHtml}
+            </div>
             <div class="client-actions">
                 <button class="neon-btn-sm" onclick="showEditClient(${idx})">Editar</button>
                 <button class="neon-btn-sm outline" onclick="showDeleteClient(${idx})">Eliminar</button>
                 <button class="neon-btn-sm" onclick="showClientOrders(${idx})">Ver Detalles</button>
-                <button class="neon-btn-sm outline" onclick="window.open('https://wa.me/${client.phone.replace(/[^0-9]/g, '')}','_blank')">WhatsApp</button>
+                <button class="neon-btn-sm outline" onclick="window.open('https://wa.me/${(client.phone||'').replace(/[^0-9]/g, '')}','_blank')">WhatsApp</button>
             </div>
         `;
         clientsList.appendChild(div);
     });
+
+    if (shownCount === 0) {
+        clientsList.innerHTML = `<p style="opacity:.6; margin-top:2em">No hay clientes que coincidan con el filtro.</p>`;
+    }
 }
+
+function toggleInlineOrders(idx) {
+    if (inlineOpenClients.has(idx)) inlineOpenClients.delete(idx);
+    else inlineOpenClients.add(idx);
+    renderClients();
+}
+window.toggleInlineOrders = toggleInlineOrders;
+
 function renderAlertsPanel() {
     // Recopila todos los pedidos de todos los clientes
     let porVencer = [];
@@ -664,6 +736,18 @@ if (sendCardWA) {
 }
 
 // --- Arranque ---
+// Inicializa el botón toggle (si está presente en DOM)
+const toggleHideBtn = document.getElementById('toggleHideNoOrders');
+if (toggleHideBtn) {
+    toggleHideBtn.onclick = () => {
+        hideWithoutOrders = !hideWithoutOrders;
+        toggleHideBtn.textContent = hideWithoutOrders ? 'Mostrar todos' : 'Ocultar sin pedidos';
+        renderClients();
+    };
+    // texto inicial
+    toggleHideBtn.textContent = hideWithoutOrders ? 'Mostrar todos' : 'Ocultar sin pedidos';
+}
+
 listenClientsRealtime();
 
 
