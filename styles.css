@@ -290,44 +290,65 @@ body {
 
 /* -------- PANEL LATERAL (OFF-CANVAS) --------- */
 .side-panel-bg {
-    position: fixed;
-    top: 0; right: 0; left:0; bottom:0;
-    z-index: 100;
-    background: rgba(23,25,38,0.7);
-    display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  background: rgba(23,25,38,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2vh;
 }
 .side-panel-bg.active {
-    display: block;
+  display: flex;
 }
+
+
+/* Caja centrada en lugar de off-canvas */
 .side-panel {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 370px;
-    max-width: 98vw;
-    height: 100vh;
-    background: var(--card-bg);
-    box-shadow: -6px 0 42px 1px var(--neon-blue);
-    border-left: 3px solid var(--neon-blue);
-    animation: slideInPanel .35s cubic-bezier(.36,1.64,.54,1.16);
-    padding: 0 0 0 0;
+  width: 920px;
+  max-width: 98vw;
+  max-height: 92vh;
+  background: var(--card-bg);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 28px 0px var(--neon-blue);
+  border-radius: 12px;
+  overflow: auto;
+  position: relative;
+  padding-bottom: 1.2em;
+  animation: panelPop .28s cubic-bezier(.2,.9,.3,1);
+  border-left: none; /* elimina el estilo off-canvas */
 }
-@keyframes slideInPanel {
-    0% {transform: translateX(110%);}
-    100% {transform: translateX(0);}
+
+
+/* Animación suave de entrada */
+@keyframes panelPop {
+  0% { transform: translateY(8px) scale(.99); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+
+/* Cabecera pegada (útil si hay mucho contenido) */
 .side-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.3em 1.5em 0.1em 1.5em;
-    border-bottom: 1px solid #4447;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1em 1.5em 0.1em 1.5em;
+  border-bottom: 1px solid #4447;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, rgba(30,34,44,0.98), rgba(30,34,44,0.95));
+  z-index: 4;
 }
 .side-panel-header h3 {
-    color: var(--neon-blue);
-    font-size: 1.35em;
-    text-shadow: 0 0 9px var(--neon-blue);
+  color: var(--neon-blue);
+  font-size: 1.35em;
+  text-shadow: 0 0 9px var(--neon-blue);
 }
+
+
 .close-btn {
     background: transparent;
     border: none;
