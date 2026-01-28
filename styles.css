@@ -288,6 +288,8 @@ body {
 
 
 
+
+
 /* -------- PANEL LATERAL (OFF-CANVAS) --------- */
 .side-panel-bg {
   position: fixed;
@@ -616,8 +618,6 @@ body {
 
 
 
-/* ...tus estilos principales previos (sidebars, tarjetas, panel, etc.) ... */
-
 .stamp-style-picker {
   display:flex;
   align-items:center;
@@ -691,8 +691,6 @@ body {
   color: #fff;
   box-shadow: 0 0 20px var(--neon-blue);
 }
-
-
 
 
 
@@ -832,8 +830,6 @@ body {
 
 
 
-
-
 .template-section {
     padding: 2em 1vw;
 }
@@ -851,7 +847,6 @@ body {
 
 
 
-/* Templates: grilla responsiva (varias tarjetas por fila) */
 #templateList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -860,7 +855,6 @@ body {
   margin-top: 1rem;
 }
 
-/* tarjeta específica para plantilla (si quieres control separado del .client-card) */
 .template-card {
   padding: 1rem;
   border-radius: 12px;
@@ -872,14 +866,10 @@ body {
   justify-content: space-between;
 }
 
-/* asegura que el botón "Enviar/Editar/Eliminar" quede alineado abajo */
 .template-card .client-actions {
   margin-top: 0.6rem;
   justify-content: flex-end;
 }
-
-
-
 
 .orders-section, .fidelity-summary-section, .central-alerts-section {
   padding: 2.2em 2vw;
@@ -923,3 +913,133 @@ body {
   font-size:1.1em;
   opacity:.78;
 }
+
+
+/* --- ADICIONES: estilos mínimos para clientes recientes y grid de meses --- */
+
+.months-grid {
+  display: flex;
+  gap: .35em;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.months-grid button {
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  color: #fff;
+  cursor: pointer;
+  padding: .38em .6em;
+  font-size: .92em;
+}
+
+/* --- NUEVOS ESTILOS: panel de búsqueda y orden alfabético --- */
+
+.clients-search-panel {
+  display: flex;
+  gap: .6em;
+  align-items: center;
+  margin-bottom: 1.2em;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1 1 360px;
+  min-width: 180px;
+  background: #14161d;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: .52em .8em;
+  border-radius: 9px;
+  color: #fff;
+  font-size: .98em;
+  outline: none;
+  box-shadow: 0 0 12px 0 rgba(0,0,0,0.3);
+}
+.search-input::placeholder { color: #8f95a6; opacity: .9; }
+
+.search-controls {
+  display: flex;
+  gap: .6em;
+  align-items: center;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5em;
+  background: transparent;
+  color: var(--neon-blue);
+  border: 1px solid rgba(0,234,255,0.12);
+  padding: .45em .7em;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background .12s, color .12s, box-shadow .12s;
+}
+.sort-btn:hover {
+  background: rgba(0,234,255,0.03);
+  color: var(--neon-green);
+  box-shadow: 0 0 10px var(--neon-blue);
+}
+
+/* Estado activo: orden ascendente/descendente */
+.sort-btn[data-order="asc"] { color: var(--neon-green); border-color: rgba(57,255,20,0.25); box-shadow: 0 0 10px rgba(57,255,20,0.08); }
+.sort-btn[data-order="desc"] { color: var(--neon-pink); border-color: rgba(255,68,204,0.12); box-shadow: 0 0 10px rgba(255,68,204,0.06); }
+
+.clear-search {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.04);
+  color: #bbb;
+  padding: .38em .6em;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: .92em;
+}
+.clear-search:hover { color: #fff; border-color: rgba(255,255,255,0.10); }
+
+/* Mensaje sin resultados del buscador */
+.clients-no-results {
+  text-align: center;
+  color: #b9b9c8;
+  padding: 1.8em;
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.03);
+  border-radius: 10px;
+  margin-top: .6em;
+}
+
+/* Asegura buena presentación del panel centrado (ya añadido previamente) */
+.side-panel {
+  /* ya definido en el CSS principal; mantén estos valores si quieres adaptarlos */
+}
+
+/* Puedes añadir aquí más estilos si quieres diferenciar visualmente el leaderboard y la tabla filtrada */
+#yearLeaderboard .client-card {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Ajustes responsive para el panel de búsqueda */
+@media (max-width: 900px) {
+  .clients-search-panel {
+    gap: .5em;
+  }
+  .search-input {
+    flex-basis: 100%;
+  }
+  .search-controls {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .search-controls { width: 100%; display: flex; gap: .5em; flex-wrap: wrap; }
+  .sort-btn, .clear-search { flex: 1 1 48%; text-align: center; }
+}
+
+/* Pequeños refinamientos visuales */
+.client-card .client-actions button { min-height: 36px; }
