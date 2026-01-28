@@ -16,6 +16,36 @@ let deleteOrderIdx = null, deleteOrderId = null;
 let hideWithoutOrders = false;
 const inlineOpenClients = new Set();
 
+// NUEVO: búsqueda y orden alfabético para clientes
+let clientSearchTerm = '';
+let clientSortOrder = 'asc'; // 'asc' | 'desc' | 'none'
+const clientsSearchInput = document.getElementById('clientsSearchInput');
+const clientsSortBtn = document.getElementById('clientsSortBtn');
+const clientsClearSearchBtn = document.getElementById('clientsClearSearch');
+
+if (clientsSearchInput) {
+  clientsSearchInput.oninput = (e) => {
+    clientSearchTerm = (e.target.value || '').toLowerCase().trim();
+    renderClients();
+  };
+}
+if (clientsClearSearchBtn) {
+  clientsClearSearchBtn.onclick = () => {
+    if (clientsSearchInput) clientsSearchInput.value = '';
+    clientSearchTerm = '';
+    renderClients();
+  };
+}
+if (clientsSortBtn) {
+  clientsSortBtn.onclick = () => {
+    // toggle: asc -> desc -> asc
+    clientSortOrder = clientSortOrder === 'asc' ? 'desc' : 'asc';
+    clientsSortBtn.dataset.order = clientSortOrder;
+    clientsSortBtn.textContent = clientSortOrder === 'asc' ? 'A→Z' : 'Z→A';
+    renderClients();
+  };
+}
+
 
 // ---- === CLIENTES === ---- //
 function listenClientsRealtime() {
@@ -94,13 +124,45 @@ function renderClients() {
         return;
     }
 
+    // Construimos array de elementos visibles manteniendo referencia al índice original
+    const visible = clients.map((c, i) => ({ cli: c, idx: i }))
+      .filter(item => {
+        // filtro: ocultar sin pedidos si corresponde
+        if (hideWithoutOrders && (!item.cli.orders || item.cli.orders.length === 0)) return false;
+        // filtro de búsqueda por nombre, teléfono o email
+        if (clientSearchTerm) {
+          const q = clientSearchTerm;
+          const name = (item.cli.name || '').toLowerCase();
+          const phone = (item.cli.phone || '').toLowerCase();
+          const email = (item.cli.email || '').toLowerCase();
+          return name.includes(q) || phone.includes(q) || email.includes(q);
+        }
+        return true;
+      });
+
+    if (visible.length === 0) {
+        // Si no hay resultados luego de filtrar
+        clientsList.innerHTML = `<div class="clients-no-results">No hay clientes que coincidan con la búsqueda o el filtro.</div>`;
+        return;
+    }
+
+    // ordenar alfabéticamente según clientSortOrder (por nombre)
+    if (clientSortOrder === 'asc' || clientSortOrder === 'desc') {
+        visible.sort((a, b) => {
+            const na = (a.cli.name || '').toLowerCase();
+            const nb = (b.cli.name || '').toLowerCase();
+            if (na < nb) return clientSortOrder === 'asc' ? -1 : 1;
+            if (na > nb) return clientSortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
     // Contador visible para indicar cuántos mostramos (útil cuando ocultamos sin pedidos)
     let shownCount = 0;
-    clients.forEach((client, idx) => {
-        // Si está activo el filtro: ocultar clientes sin pedidos
-        if (hideWithoutOrders && (!client.orders || client.orders.length === 0)) {
-            return;
-        }
+    visible.forEach(item => {
+        const client = item.cli;
+        const idx = item.idx;
+
         shownCount++;
 
         const div = document.createElement('div');
